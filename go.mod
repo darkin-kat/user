@@ -3,7 +3,7 @@ module github.com/darkin-kat/user
 go 1.25.0
 
 require (
-	github.com/darkin-kat/store-api v0.0.0-20260826145700-752f452db6d6
+	github.com/darkin-kat/store-api v0.0.0-20260826203153-73b0c0da2f58
 	github.com/google/uuid v1.6.0
 	golang.org/x/crypto v0.55.0
 	google.golang.org/grpc v1.83.2
