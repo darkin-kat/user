@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -63,6 +64,30 @@ func (s *Server) Create(ctx context.Context, req *usersv1.CreateUserRequest) (*u
 		User: toProtoUser(&res),
 	}, nil
 }
+
+func (s *Server) GetUser(ctx context.Context, req *usersv1.GetUserRequest) (*usersv1.GetUserResponse, error) {
+	var user domain.User
+	var err error
+	
+	switch identifier := req.GetIdentifier().(type) {
+		case *usersv1.GetUserRequest_Id:
+			user, err = s.repo.GetByID(ctx, identifier.Id)
+		case *usersv1.GetUserRequest_Email:
+			user, err = s.repo.GetByEmail(ctx, identifier.Email)
+		default:
+			return nil, status.Error(codes.InvalidArgument, "user ID or email must be provided")
+	}
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to get user")
+	}
+	return &usersv1.GetUserResponse{
+		User: toProtoUser(&user),
+	}, nil
+}
+	
 
 func toProtoUser(user *domain.User) *usersv1.User {
 	return &usersv1.User{
