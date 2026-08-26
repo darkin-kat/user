@@ -2,9 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/darkin-kat/user/internal/domain"
 )
+
+var ErrUserNotFound = errors.New("user not found")
 
 type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) (domain.User, error)
