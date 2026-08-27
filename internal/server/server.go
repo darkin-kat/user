@@ -58,6 +58,9 @@ func (s *Server) Create(ctx context.Context, req *usrv1.CreateUserRequest) (*usr
 	}
 	res, err := s.repo.Create(ctx, user)
 	if err != nil {
+		if errors.Is(err, repository.ErrEmailAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, "email already exists")
+		}
 		return nil, status.Error(codes.Internal, "failed to create user")
 	}
 	return &usrv1.CreateUserResponse{
