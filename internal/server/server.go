@@ -28,7 +28,7 @@ func NewServer(repo repository.UserRepository) *Server {
 	}
 }
 
-func (s *Server) Create(ctx context.Context, req *usrv1.CreateUserRequest) (*usrv1.CreateUserResponse, error) {
+func (s *Server) CreateUser(ctx context.Context, req *usrv1.CreateUserRequest) (*usrv1.CreateUserResponse, error) {
 	if req.GetEmail() == "" {
 		return nil, status.Error(codes.InvalidArgument, "email is required")
 	}
@@ -46,15 +46,16 @@ func (s *Server) Create(ctx context.Context, req *usrv1.CreateUserRequest) (*usr
 		return nil, status.Error(codes.Internal, "failed to hash password")
 	}
 	now := time.Now()
-	
+
 	user := &domain.User{
-		ID:        uuid.New().String(),
-		Email:     req.GetEmail(),
-		FirstName: req.GetFirstName(),
-		LastName:  req.GetLastName(),
-		PasswordHash:  string(hashedPassword),
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:           uuid.New().String(),
+		Email:        req.GetEmail(),
+		FirstName:    req.GetFirstName(),
+		LastName:     req.GetLastName(),
+		Role:         domain.RoleUser, // Default role
+		PasswordHash: string(hashedPassword),
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 	res, err := s.repo.Create(ctx, user)
 	if err != nil {
@@ -71,14 +72,14 @@ func (s *Server) Create(ctx context.Context, req *usrv1.CreateUserRequest) (*usr
 func (s *Server) GetUser(ctx context.Context, req *usrv1.GetUserRequest) (*usrv1.GetUserResponse, error) {
 	var user domain.User
 	var err error
-	
+
 	switch identifier := req.GetIdentifier().(type) {
-		case *usrv1.GetUserRequest_Id:
-			user, err = s.repo.GetByID(ctx, identifier.Id)
-		case *usrv1.GetUserRequest_Email:
-			user, err = s.repo.GetByEmail(ctx, identifier.Email)
-		default:
-			return nil, status.Error(codes.InvalidArgument, "user ID or email must be provided")
+	case *usrv1.GetUserRequest_Id:
+		user, err = s.repo.GetByID(ctx, identifier.Id)
+	case *usrv1.GetUserRequest_Email:
+		user, err = s.repo.GetByEmail(ctx, identifier.Email)
+	default:
+		return nil, status.Error(codes.InvalidArgument, "user ID or email must be provided")
 	}
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
@@ -171,6 +172,18 @@ func (s *Server) ListUsers(ctx context.Context, req *usrv1.ListUsersRequest) (*u
 }
 
 func toProtoUser(user *domain.User) *usrv1.User {
+	var role usrv1.Role
+	switch user.Role {
+	case domain.RoleUser:
+		role = usrv1.Role_ROLE_USER
+	case domain.RoleAdmin:
+		role = usrv1.Role_ROLE_ADMIN
+	case domain.RoleWarehouse:
+		role = usrv1.Role_ROLE_WAREHOUSE
+	default:
+		role = usrv1.Role_ROLE_UNSPECIFIED
+	}
+
 	return &usrv1.User{
 		Id:        user.ID,
 		Email:     user.Email,
@@ -178,5 +191,6 @@ func toProtoUser(user *domain.User) *usrv1.User {
 		LastName:  user.LastName,
 		CreatedAt: timestamppb.New(user.CreatedAt),
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
+		Role:      role,
 	}
 }

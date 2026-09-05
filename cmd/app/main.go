@@ -13,6 +13,7 @@ import (
 	mongorepo "github.com/darkin-kat/user/internal/repository/mongo"
 	"github.com/darkin-kat/user/internal/server"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	usrv1 "github.com/darkin-kat/store-api/gen/users/v1"
 
@@ -76,11 +77,13 @@ func main() {
 	grpcServer := grpc.NewServer()
 	usrv1.RegisterUserServiceServer(grpcServer, srv)
 
+	reflection.Register(grpcServer) // Register reflection service on gRPC server.
+
 	listener, err := net.Listen("tcp", ":"+cfg.GRPCPort)
 	if err != nil {
 		log.Fatalf("Failed to listen on port %s: %v", cfg.GRPCPort, err)
 	}
-	
+
 	go func() {
 		log.Printf("gRPC user service is listening on port %s", cfg.GRPCPort)
 		if err := grpcServer.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {

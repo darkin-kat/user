@@ -42,7 +42,7 @@ func (r *Repository) Create(ctx context.Context, user *domain.User) (domain.User
 func (r *Repository) GetByID(ctx context.Context, id string) (domain.User, error) {
 	var user domain.User
 
-	filter := bson.M{"id": id}
+	filter := bson.M{"_id": id}
 	err := r.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
